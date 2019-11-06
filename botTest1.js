@@ -6,7 +6,10 @@ var config = require('./config');
 
 var T = new Twit(config);
 
-var params
+var fs = require('fs');
+
+var params;
+
 T.get('search/tweets', { q: 'Ok boomer', count: 10 }, function(err, data, response) {
   console.log(data)
 })
@@ -37,29 +40,44 @@ function tweetEvent(tweet) {
 var retweet = function () {
     var params = {
         q: 'ok boomer, #okboomer',
-        result_type: 'recent',
+        result_type: 'mixed',
         lang: 'en'
     }
-    Twitter.get('search/tweets', params, function(err, data) {
-        if(!err) {
-            if(data.statuses[0].retweet_count > 30) {
-                
-                var retweetId = data.statuses[0].id_str;
-                Twitter.post('statuses/retweet/:id', {
-                    id: retweetId
-                }, function (err, response) {
-                    if(response) {
-                        console.log('Retweeted!!!');
-                    }
-                    if(err){
-                        console.log(err);
-                        console.log('Problem when retweeting. Possibly already retweeted.');
-                    }
-                });
-            }
+    T.get('search/tweets', params, function (err, data) {
+        if (!err) {
+            var retweetId = data.statuses[0].id_str;
+            T.post('statuses/retweet/:id', {
+                id: retweetId
+            }, function (err, response) {
+                if(response) {
+                    console.log('Retweeted');
+                }
+                if (err) {
+                    console.log(err);
+                    console.log('Problem');
+                }
+            });
         }
         else {
-            console.log('Error during tweet search');
+            console.log('could not search');
         }
     });
 };
+
+retweet();
+
+const dir = 'images'
+
+var files = fs.readdirSync(dir);
+
+var stream = T.stream('statuses/filter', {
+    track: '@okboomer_bot'
+})
+
+stream.on('tweet', function(tweet) {
+    var file = dir + "/" + files[Math.floor(Math.random() * files.length)];
+    
+    var id = tweet['id_str'];
+    var name = tweet['user']['screen_name'];
+}
+
