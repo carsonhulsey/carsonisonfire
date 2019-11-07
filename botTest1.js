@@ -10,10 +10,12 @@ var fs = require('fs');
 
 var params;
 
+//This function gets the tweets based on our key phrase 'Ok boomer'
 T.get('search/tweets', { q: 'Ok boomer', count: 10 }, function(err, data, response) {
   console.log(data)
 })
 
+//This function replies to mentions of our account with "ok boomer"
 var stream = T.stream('statuses/filter', {track: ['@okboomer_bot']});
 stream.on('tweet', tweetEvent);
 
@@ -37,47 +39,50 @@ function tweetEvent(tweet) {
     })
 };
 
-var retweet = function () {
-    var params = {
-        q: 'ok boomer, #okboomer',
-        result_type: 'mixed',
-        lang: 'en'
-    }
-    T.get('search/tweets', params, function (err, data) {
-        if (!err) {
-            var retweetId = data.statuses[0].id_str;
-            T.post('statuses/retweet/:id', {
-                id: retweetId
-            }, function (err, response) {
-                if(response) {
-                    console.log('Retweeted');
-                }
-                if (err) {
-                    console.log(err);
-                    console.log('Problem');
-                }
-            });
-        }
-        else {
-            console.log('could not search');
-        }
-    });
-};
-
-retweet();
-
-const dir = 'images'
-
-var files = fs.readdirSync(dir);
-
-var stream = T.stream('statuses/filter', {
-    track: '@okboomer_bot'
-})
-
-stream.on('tweet', function(tweet) {
-    var file = dir + "/" + files[Math.floor(Math.random() * files.length)];
-    
-    var id = tweet['id_str'];
-    var name = tweet['user']['screen_name'];
+//This function retweets tweets with the key phrase "ok boomer"
+function retweet(err,data,response){
+    console.log(data)
 }
 
+T.get('search/tweets', { q: 'ok boomer', count: 1},function(err,data,response) {
+    var retweetId = data.statuses[0].id_str;
+    T.post('statuses/retweet/' + retweetId, 
+           { }, function (error, data, response)
+    {console.log('Success!')})
+})
+
+retweet();
+setInterval(retweet, 1000*60*60);
+
+//This function likes tweets with the key phrase "ok boomer"
+T.get('search/tweets', {q: 'ok boomer', count: 5 },
+function (err, data, response) {
+    var likeID = data.statuses[0].id_str;
+    T.post('favorites/create', {id: likeID},
+    function(err,data,response){console.log("liked a post")});
+    console.log(data);
+});
+
+var b64content = fs.readFileSync('./images/okboomer.jpg', {encoding: 'base64'})
+
+//This function tweets out an Ok boomer meme
+function tweetEvent(tweet) {
+    
+    var name = tweet.user.screen_name;
+    
+    var nameID = tweet.id_str;
+    
+    var reply = T.post('media/upload', {media_data: b64content}, function (err, data, response) {
+    var mediaIdStr = data.media_id_string
+    var altText = "Ok boomer"
+    var meta_params = {media_id: mediaIdStr, alt_text: {text: altText}}
+    
+    T.post('media/metadata/create', meta_params, function (err, data, response) {
+        if (!err) {
+            var params = {status: 'Ok boomer', media_ids: [mediaIdStr] }
+            T.post('statuses/update', params, function(err, data, response) {
+                console.log(data)
+            })
+        }
+    })
+})};
